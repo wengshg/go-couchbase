@@ -255,6 +255,87 @@ var samplePool = `{
     "tasksStatus": "none"
 }`
 
+var sampleBucketStats = `{
+    "hot_keys": [
+        {
+            "name": "dc=aaaaa",
+            "ops": 0.0007763375056264578
+        },
+        {
+            "name": "ou=bbbbb",
+            "ops": 2.537574224046053e-05
+        }
+    ],
+   "op": {
+    "interval": 1000,
+    "isPersistent": true,
+    "lastTStamp": 1472444368974,
+        "samples": {
+            "avg_bg_wait_time": [
+                0,
+                0
+            ],
+            "avg_disk_commit_time": [
+                0.5000000000000001,
+                0
+            ],
+            "bytes_read": [
+                384.6153846153846,
+                357
+            ],
+            "bytes_written": [
+                70416.58341658342,
+                63619
+            ],
+            "couch_docs_data_size": [
+                42012950,
+                42012950
+            ],
+            "couch_docs_disk_size": [
+                42012950,
+                42012950
+            ],
+            "couch_total_disk_size": [
+                72723492,
+                72723492
+            ],
+            "cpu_idle_ms": [
+                27420,
+                27150
+            ],
+            "cpu_local_ms": [
+                28090,
+                28130
+            ],
+            "cpu_utilization_rate": [
+                5.236907730673317,
+                10.72319201995012
+            ],
+            "curr_connections": [
+                160,
+                160
+            ],
+            "curr_items": [
+                574,
+                574
+            ],
+            "curr_items_tot": [
+                1722,
+                1722
+            ],
+            "disk_commit_total": [
+                0,
+                2500000
+            ],
+            "ep_dcp_views+indexes_producer_count": [
+                30,
+                30
+            ]
+        },
+        "samplesCount": 2
+    }
+}`
+
 func assert(t *testing.T, name string, got interface{}, expected interface{}) {
 	if got != expected {
 		t.Fatalf("Expected %v for %s, got %v", expected, name, got)
@@ -287,6 +368,13 @@ func TestPool(t *testing.T) {
 	res := Pool{}
 	testParse(t, samplePool, &res)
 	assert(t, "len(pools)", 5, len(res.Nodes))
+}
+
+func TestBucketStats(t *testing.T) {
+	res := BucketStats{}
+	testParse(t, sampleBucketStats, &res)
+	assert(t, "curr_connections", 2, res.Op.SamplesCount)
+	assert(t, "len(cpu_urate)", 2, len(res.Op.Samples["cpu_utilization_rate"]))
 }
 
 func TestCommonAddressSuffixEmpty(t *testing.T) {

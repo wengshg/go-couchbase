@@ -142,6 +142,7 @@ type Node struct {
 // A Pool of nodes and buckets.
 type Pool struct {
 	BucketMap map[string]Bucket
+	BucketStatsMap  map[string]BucketStats
 	Nodes     []Node
 
 	BucketURL map[string]string `json:"buckets"`
@@ -184,6 +185,7 @@ type Bucket struct {
 	} `json:"ddocs,omitempty"`
 	BasicStats  map[string]interface{} `json:"basicStats,omitempty"`
 	Controllers map[string]interface{} `json:"controllers,omitempty"`
+	Stats       map[string]string      `json:"stats,omitempty"`
 
 	// These are used for JSON IO, but isn't used for processing
 	// since it needs to be swapped out safely.
@@ -197,6 +199,18 @@ type Bucket struct {
 	commonSufix      string
 	ah               AuthHandler        // auth handler
 	ds               *DurablitySettings // Durablity Settings for this bucket
+}
+
+// BucketStats is the primary entry point for most data operations.
+type BucketStats struct {
+	Hotkeys         []map[string]interface{} `json:"hot_keys,omitempty"`
+	Op              struct {
+		Interval      int       `json:"interval,omitempty"`
+		IsPersistent  bool      `json:"isPersistent,omitempty"`
+		LastTStamp    uint64    `json:"lastTStamp,omitempty"`
+		SamplesCount  int       `json:"samplesCount"`
+		Samples       map[string][]interface{}        `json:"samples"`
+	}       `json:"op,omitempty"`
 }
 
 // PoolServices is all the bucket-independent services in a pool
@@ -845,12 +859,20 @@ func (p *Pool) refresh() (err error) {
 	if err != nil {
 		return err
 	}
+	p.BucketStatsMap = make(map[string]BucketStats)
 	for _, b := range buckets {
 		b.pool = p
 		b.nodeList = unsafe.Pointer(&b.NodesJSON)
 		b.replaceConnPools(make([]*connectionPool, len(b.VBSMJson.ServerList)))
 
 		p.BucketMap[b.Name] = b
+
+		bucketStats := BucketStats{}
+		err = p.client.parseURLResponse(b.Stats["uri"], &bucketStats)
+		if err != nil {
+			return err
+		}
+		p.BucketStatsMap[b.Name] = bucketStats
 	}
 	return nil
 }
